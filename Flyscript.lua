@@ -2,9 +2,10 @@
 local player = game.Players.LocalPlayer
 local flying = false
 local speedLevel = 1
-local bodyGyro, bodyVelocity
+local bodyVelocity
 local upPressed, downPressed = false, false
 
+-- UI Setup
 local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = Instance.new("ScreenGui", playerGui)
 screenGui.ResetOnSpawn = false
@@ -74,41 +75,35 @@ local function toggleFly()
     local hrp = char:WaitForChild("HumanoidRootPart")
 
     if flying then
-        -- إضافة BodyVelocity و BodyGyro فقط للارتفاع، لا تعطيل PlatformStand
-        bodyGyro = Instance.new("BodyGyro", hrp)
-        bodyGyro.P = 9e4
-        bodyGyro.maxTorque = Vector3.new(9e9,9e9,9e9)
-        bodyGyro.cframe = hrp.CFrame
-
+        -- إضافة BodyVelocity على محور Y فقط
         bodyVelocity = Instance.new("BodyVelocity", hrp)
-        bodyVelocity.maxForce = Vector3.new(0,9e9,0)
-        bodyVelocity.velocity = Vector3.new(0,0,0)
+        bodyVelocity.MaxForce = Vector3.new(0, math.huge, 0)
+        bodyVelocity.Velocity = Vector3.new(0,0,0)
 
+        -- RenderStepped loop
         local conn
         conn = game:GetService("RunService").RenderStepped:Connect(function()
             if flying then
                 local velY = 0
                 if upPressed then velY = speedLevel*10 end
                 if downPressed then velY = -speedLevel*10 end
-                bodyVelocity.velocity = Vector3.new(0, velY, 0)
-                bodyGyro.cframe = hrp.CFrame
+                bodyVelocity.Velocity = Vector3.new(0, velY, 0)
             else
                 conn:Disconnect()
-                if bodyGyro then bodyGyro:Destroy() end
                 if bodyVelocity then bodyVelocity:Destroy() end
             end
         end)
     else
-        if bodyGyro then bodyGyro:Destroy() end
         if bodyVelocity then bodyVelocity:Destroy() end
     end
 end
 
--- Fix + / - buttons
+-- Speed buttons
 plusButton.MouseButton1Click:Connect(function()
     speedLevel = speedLevel + 1
     speedLabel.Text = "Speed: "..speedLevel
 end)
+
 minusButton.MouseButton1Click:Connect(function()
     if speedLevel > 1 then
         speedLevel = speedLevel - 1
