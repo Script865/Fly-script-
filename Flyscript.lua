@@ -1,14 +1,11 @@
 -- Variables
 local player = game.Players.LocalPlayer
-local userInput = game:GetService("UserInputService")
-local runService = game:GetService("RunService")
 local flying = false
 local speedLevel = 1
 local bodyGyro, bodyVelocity
-local moveVector = Vector3.new(0,0,0)
 local upPressed, downPressed = false, false
 
--- UI Setup (مختصر)
+-- UI Setup
 local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = Instance.new("ScreenGui", playerGui)
 screenGui.ResetOnSpawn = false
@@ -71,6 +68,62 @@ downButton.TextScaled = true
 downButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 downButton.TextColor3 = Color3.new(1,1,1)
 
+-- Toggle Fly
+local function toggleFly()
+    flying = not flying
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    local humanoid = char:WaitForChild("Humanoid")
+
+    if flying then
+        humanoid.PlatformStand = true
+
+        bodyGyro = Instance.new("BodyGyro", hrp)
+        bodyGyro.P = 9e4
+        bodyGyro.maxTorque = Vector3.new(9e9,9e9,9e9)
+        bodyGyro.cframe = hrp.CFrame
+
+        bodyVelocity = Instance.new("BodyVelocity", hrp)
+        bodyVelocity.maxForce = Vector3.new(0,9e9,0) -- فقط Y axis
+        bodyVelocity.velocity = Vector3.new(0,0,0)
+
+        local connection
+        connection = game:GetService("RunService").RenderStepped:Connect(function()
+            if flying then
+                local velY = 0
+                if upPressed then velY = speedLevel*10 end
+                if downPressed then velY = -speedLevel*10 end
+                bodyVelocity.velocity = Vector3.new(0, velY, 0)
+                bodyGyro.cframe = hrp.CFrame
+            else
+                connection:Disconnect()
+            end
+        end)
+    else
+        humanoid.PlatformStand = false
+        if bodyGyro then bodyGyro:Destroy() end
+        if bodyVelocity then bodyVelocity:Destroy() end
+    end
+end
+
+-- Button Events
+flyButton.MouseButton1Click:Connect(toggleFly)
+
+plusButton.MouseButton1Click:Connect(function()
+    speedLevel = speedLevel + 1
+    speedLabel.Text = "Speed: "..speedLevel
+end)
+minusButton.MouseButton1Click:Connect(function()
+    if speedLevel > 1 then
+        speedLevel = speedLevel -1
+        speedLabel.Text = "Speed: "..speedLevel
+    end
+end)
+
+upButton.MouseButton1Down:Connect(function() if flying then upPressed=true end end)
+upButton.MouseButton1Up:Connect(function() upPressed=false end)
+downButton.MouseButton1Down:Connect(function() if flying then downPressed=true end end)
+downButton.MouseButton1Up:Connect(function() downPressed=false end)
 -- Functions
 local function getMoveVector()
     local vec = Vector3.new(0,0,0)
