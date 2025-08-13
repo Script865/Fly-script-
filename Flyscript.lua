@@ -1,7 +1,7 @@
 -- Variables
 local player = game.Players.LocalPlayer
 local flying = false
-local speedLevel = 1 -- سرعة الطيران: 1 = 10، 2 = 20، ...
+local speedLevel = 1 -- سرعة الطيران
 local upPressed, downPressed = false, false
 
 local playerGui = player:WaitForChild("PlayerGui")
@@ -93,24 +93,30 @@ local function toggleFly()
                 local moveDir = humanoid.MoveDirection
                 local camera = workspace.CurrentCamera
 
-                -- ShiftLock check
-                local shiftLockEnabled = player.DevEnableMouseLock -- true = locked
-                local direction
-                if shiftLockEnabled then
-                    -- Lock: الطيران يتبع جسم الشخصية فقط
-                    direction = moveDir * (speedLevel*10)
-                else
-                    -- Unlock: الطيران يتبع الكاميرا
-                    local camLook = Vector3.new(camera.CFrame.LookVector.X, 0, camera.CFrame.LookVector.Z).Unit
-                    if camLook ~= camLook then camLook = Vector3.new(0,0,0) end
-                    direction = moveDir * (speedLevel*10) + camLook * (speedLevel*10 * 0.5)
+                -- حساب الاتجاه بناءً على الكاميرا
+                local cameraCFrame = camera.CFrame
+                local forwardVector = cameraCFrame.LookVector * Vector3.new(1, 0, 1) -- الاتجاه للأمام
+                local rightVector = cameraCFrame.RightVector
+
+                local direction = Vector3.new(0,0,0)
+
+                if moveDir.Z > 0 then -- للأمام
+                    direction = direction + forwardVector
+                elseif moveDir.Z < 0 then -- للخلف
+                    direction = direction - forwardVector
+                end
+                
+                if moveDir.X > 0 then -- لليمين
+                    direction = direction + rightVector
+                elseif moveDir.X < 0 then -- لليسار
+                    direction = direction - rightVector
                 end
 
                 -- Up/Down التحكم بالارتفاع
-                if upPressed then direction = direction + Vector3.new(0,speedLevel*10,0) end
-                if downPressed then direction = direction - Vector3.new(0,speedLevel*10,0) end
-
-                bodyVelocity.Velocity = direction
+                if upPressed then direction = direction + Vector3.new(0,1,0) end
+                if downPressed then direction = direction - Vector3.new(0,1,0) end
+                
+                bodyVelocity.Velocity = direction.Unit * (speedLevel * 10)
             else
                 conn:Disconnect()
                 bodyVelocity:Destroy()
@@ -124,6 +130,10 @@ local function toggleFly()
             end
         end)
     else
+        -- إذا لم يكن هناك BodyVelocity، فلا تفعل شيئًا
+        if hrp:FindFirstChild("BodyVelocity") then
+            hrp.BodyVelocity:Destroy()
+        end
         humanoid.PlatformStand = false
         -- إعادة CanCollide عند إيقاف الطيران
         for _, part in pairs(char:GetDescendants()) do
