@@ -72,21 +72,18 @@ local function toggleFly()
     flying = not flying
     local char = player.Character or player.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart")
-    local humanoid = char:WaitForChild("Humanoid")
 
     if flying then
-        humanoid.PlatformStand = true
-
+        -- إضافة BodyVelocity و BodyGyro فقط للارتفاع، لا تعطيل PlatformStand
         bodyGyro = Instance.new("BodyGyro", hrp)
         bodyGyro.P = 9e4
         bodyGyro.maxTorque = Vector3.new(9e9,9e9,9e9)
         bodyGyro.cframe = hrp.CFrame
 
         bodyVelocity = Instance.new("BodyVelocity", hrp)
-        bodyVelocity.maxForce = Vector3.new(0,9e9,0) -- فقط Y
+        bodyVelocity.maxForce = Vector3.new(0,9e9,0)
         bodyVelocity.velocity = Vector3.new(0,0,0)
 
-        -- RenderStepped loop
         local conn
         conn = game:GetService("RunService").RenderStepped:Connect(function()
             if flying then
@@ -97,16 +94,17 @@ local function toggleFly()
                 bodyGyro.cframe = hrp.CFrame
             else
                 conn:Disconnect()
+                if bodyGyro then bodyGyro:Destroy() end
+                if bodyVelocity then bodyVelocity:Destroy() end
             end
         end)
     else
-        humanoid.PlatformStand = false
         if bodyGyro then bodyGyro:Destroy() end
         if bodyVelocity then bodyVelocity:Destroy() end
     end
 end
 
--- Fix + / - to increase/decrease 1 فقط
+-- Fix + / - buttons
 plusButton.MouseButton1Click:Connect(function()
     speedLevel = speedLevel + 1
     speedLabel.Text = "Speed: "..speedLevel
